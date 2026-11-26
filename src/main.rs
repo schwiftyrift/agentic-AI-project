@@ -5,9 +5,11 @@ mod agent;
 
 use serde_json::{json, Value};
 use std::io::{self, Write};
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let url = "http://192.168.1.147:1234/v1/chat/completions";
-    let client = reqwest::blocking::Client::new();
+    let client = reqwest::Client::new();
     let mut messages: Vec<Value> = Vec::new();
 
     loop{
@@ -28,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         messages.push(json!({"role": "user", "content": input}));
         
-        agent::run_turn(&client, url, &mut messages)?;
+        agent::run_turn(&client, url, &mut messages).await?;
     };
     Ok(())
 }

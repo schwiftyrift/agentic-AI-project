@@ -1,15 +1,19 @@
 use serde_json::{json, Value};
 use crate::{llm, tools};
 
-pub fn run_turn(
-    client: &reqwest::blocking::Client,
+pub async fn run_turn(
+    client: &reqwest::Client,
     url: &str,
     messages: &mut Vec<Value>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let tool_defs = tools::tool_definitions();
+    
+    let mut registry = tools::Registry::new();
+    registry.register(Box::new(tools::RunShell));
+    registry.register(Box::new(tools::ReadFile));
+    let tool_defs = registry.definitions();
 
     for _ in 0..10 {
-        let msg = llm::chat(&client, url, messages, &tool_defs)?;
+        let msg = llm::chat(&client, url, messages, &tool_defs).await?;
         messages.push(msg.clone());
 
         match msg["tool_calls"].as_array() {
@@ -21,7 +25,7 @@ pub fn run_turn(
 
                     let args: Value = serde_json::from_str(raw_args)?;
 
-                    let result = tools::dispatch(name, &args);
+                    let result = registry.dispatch(name, &args);
 
                     messages.push(json!({
                         "role": "tool",

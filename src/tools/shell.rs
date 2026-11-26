@@ -2,34 +2,43 @@ use serde_json::{json, Value};
 use std::process::Command;
 use std::io::{self, Write};
 
-pub fn tool_definitions() -> Value {
-    let description = format!("Runs a command in a shell. The operating system is {}.", std::env::consts::OS);
-    json!([{"type": "function",
-    "function": {"name": "run_shell",
-    "description": description,
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "cmd": {
-          "type": "string",
-          "description": "Command to run in the shell, for example 'ls' or 'ls -la'"
-        }
-      },
-      "required": ["cmd"]
-    }
-  }}])
-}
+use super::Tool;
 
-pub fn dispatch(name: &str, args: &Value) -> String {
-    match name {
-        "run_shell" => {
+pub struct RunShell;
+
+impl Tool for RunShell {
+    fn name(&self) -> &str {
+        "run_shell"
+    }
+
+    fn definition(&self) -> Value {
+        let description = format!(
+            "Runs a command in a shell. The operating system is {}.",
+            std::env::consts::OS
+        );
+
+        json!({"type": "function",
+            "function": {"name": "run_shell",
+            "description": description,
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "cmd": {
+                        "type": "string",
+                        "description": "Command to run in the shell, for example 'ls' or 'ls -la'"
+                    }
+                },
+            "required": ["cmd"]
+            }
+                    }
+                    })
+    }
+
+    fn run(&self, args: &Value) -> String {
             let cmd = args["cmd"].as_str().unwrap_or("");
             run_shell(cmd)
-        }
-        _ => format!("error: unknown tool '{name}'"),
     }
 }
-
 
 pub fn run_shell(cmd: &str) -> String {
     // detect the operating system it is running on
